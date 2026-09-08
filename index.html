@@ -22,7 +22,7 @@
 <section id="review" class="panel active"><h2>Review CSS Classes</h2><p>Answer five randomized questions. Answer choices are also randomized.</p><div class="progress"><span id="reviewBar"></span></div><div id="reviewQuestion"></div><div id="reviewFeedback" class="feedback"></div><div class="buttons"><button id="reviewNext" class="action hidden">Next Question</button><button class="action secondary next-panel" data-next="debug">Next Activity</button></div></section>
 
 <section id="debug" class="panel"><h2>Debug Class Code</h2><p>Correct each code sample. Each answer must use the class name shown.</p>
-<div class="codecard"><h3>Debug 1: HTML class attribute</h3><p>Add the missing quotation marks around the class name.</p><textarea id="d1" spellcheck="false">&lt;p class=highlight&gt;Important message&lt;/p&gt;</textarea><button class="action check-debug" data-id="d1">Check</button><div id="d1f" class="feedback"></div></div>
+<div class="codecard"><h3>Debug 1: HTML class attribute</h3><p>The class attribute contains an error. Find and correct it.</p><details><summary>Hint</summary><p>Look at how an HTML attribute and its value should be written.</p></details><textarea id="d1" spellcheck="false">&lt;p class=highlight&gt;Important message&lt;/p&gt;</textarea><button class="action check-debug" data-id="d1">Check</button><div id="d1f" class="feedback"></div></div>
 <div class="codecard"><h3>Debug 2: CSS class selector</h3><p>Correct the selector so it targets <code>class="highlight"</code>.</p><textarea id="d2" spellcheck="false">highlight {
   background-color: yellow;
 }</textarea><button class="action check-debug" data-id="d2">Check</button><div id="d2f" class="feedback"></div></div>
@@ -31,7 +31,7 @@
 .featured {
   color: purple;
 }</textarea><button class="action check-debug" data-id="d3">Check</button><div id="d3f" class="feedback"></div></div>
-<div class="codecard"><h3>Debug 4: Complete rule-set</h3><p>Add the missing colon after <code>color</code> and the missing semicolon after <code>navy</code>.</p><textarea id="d4" spellcheck="false">.note {
+<div class="codecard"><h3>Debug 4: Complete rule-set</h3><p>This CSS rule contains two errors. Find and correct both.</p><details><summary>Hint</summary><p>Remember the declaration pattern: <code>property: value;</code></p></details><textarea id="d4" spellcheck="false">.note {
   color navy
   font-style: italic;
 }</textarea><button class="action check-debug" data-id="d4">Check</button><div id="d4f" class="feedback"></div></div>
