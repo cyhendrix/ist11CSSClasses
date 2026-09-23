@@ -13,7 +13,7 @@
 <section class="student"><h2>Student Information</h2><p>Enter your first and last name and choose your class period. Then click <strong>Begin Practice Lab</strong> to open the activities.</p><div class="fields"><label>Student Name<input id="studentName" placeholder="First and last name" autocomplete="name"></label><label>Class Period<select id="classPeriod"><option value="">Choose your class</option><option>1st Block</option><option>2nd Block</option><option>3rd Block</option><option>4th Block</option></select></label></div><div class="buttons"><button id="beginLab" class="action">Begin Practice Lab</button></div><div id="studentInfoFeedback" class="feedback"></div></section>
 <div id="labActivities" class="hidden"><nav id="labTabs" class="tabs" aria-label="Activities"><button class="tab active" data-panel="review">1. Review</button><button class="tab" data-panel="debug">2. Debug</button><button class="tab" data-panel="write">3. Write CSS</button><button class="tab" data-panel="apply">4. Apply</button></nav>
 
-<section id="review" class="panel active"><h2>Review CSS Classes</h2><section class="reminder"><h2>Class Reminder</h2><p>The class name has no period in HTML. The CSS selector begins with a period.</p><pre>&lt;p class="important"&gt;This paragraph is important.&lt;/p&gt;
+<section id="review" class="panel active"><h2>Review CSS Classes</h2><section class="reminder" aria-label="CSS class code reminder"><h2>Class Reminder</h2><p>The class name has no period in HTML. The CSS selector begins with a period.</p><pre>&lt;p class="important"&gt;This paragraph is important.&lt;/p&gt;
 
 .important {
   color: red;
