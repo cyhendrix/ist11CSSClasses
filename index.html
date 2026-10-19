@@ -55,6 +55,7 @@
 <div id="submissionNotice" class="notice hidden"><div><h2>Grade Submitted!</h2><p id="submissionNoticeText"></p><button id="closeNotice" class="action">Close</button></div></div>
 <script>
 const $=id=>document.getElementById(id),MAX=200;let scores={review:0,debug:0,write:0,apply:0},missed=[],reviewIndex=0,locked=false;
+const reviewAnswers=[],debugEarned=new Set(),SECTION_MAX={review:50,debug:60,write:40,apply:50};
 const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const questions=shuffle([
 {q:'What is a CSS class?',a:'An identifier used to style selected elements in the same way',w:['A file that stores HTML','A tag that inserts an image','A property that changes every element'],e:'A class groups selected elements so one CSS rule can style them.'},
@@ -64,15 +65,16 @@ const questions=shuffle([
 {q:'What must match for a class rule to work?',a:'The HTML class value and CSS class selector name',w:['The filename and page title','The color and font size','The heading and paragraph text'],e:'The class names must match exactly.'}
 ]);
 function feedback(id,ok,msg){const e=$(id);e.textContent=msg;e.className='feedback show '+(ok?'ok':'bad')}
-function total(){return Object.values(scores).reduce((a,b)=>a+b,0)}function updateScore(){$('score').textContent=total()}
+function normalizeScores(){Object.keys(SECTION_MAX).forEach(k=>{scores[k]=Math.min(SECTION_MAX[k],Math.max(0,Number(scores[k])||0))})}
+function total(){normalizeScores();return Object.keys(SECTION_MAX).reduce((sum,k)=>sum+scores[k],0)}function updateScore(){$('score').textContent=total()}
 function award(section,points,max){scores[section]=Math.min(max,Math.max(scores[section],points));updateScore()}
 function showPanel(id){document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id===id));document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.panel===id));scrollTo({top:0,behavior:'smooth'})}function beginLab(){const first=$('firstName').value.trim(),last=$('lastName').value.trim(),name=`${last}, ${first}`,period=$('classPeriod').value,info=$('studentInfoFeedback');if(!first||!last||!period){info.className='feedback show bad';info.textContent='Enter your first name, last name, and choose your class period before beginning.';if(!first)$('firstName').focus();else if(!last)$('lastName').focus();else $('classPeriod').focus();return}info.className='feedback show ok';info.textContent=`Welcome, ${first} ${last}! Your practice activities are ready.`;$('labActivities').classList.remove('hidden');showPanel('review');requestAnimationFrame(()=>$('labTabs').scrollIntoView({behavior:'smooth',block:'start'}))}$('beginLab').onclick=beginLab;
 document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>showPanel(b.dataset.panel));document.querySelectorAll('.next-panel').forEach(b=>b.onclick=()=>showPanel(b.dataset.next));
-function renderReview(){if(reviewIndex>=questions.length){$('reviewQuestion').innerHTML='<h3>Review complete.</h3><p>You may continue to the debugging activity.</p>';$('reviewNext').classList.add('hidden');return}locked=false;const q=questions[reviewIndex],choices=shuffle([q.a,...q.w]);$('reviewBar').style.width=(reviewIndex/questions.length*100)+'%';$('reviewQuestion').innerHTML=`<p class="question">${reviewIndex+1}. ${escapeHtml(q.q)}</p><div class="choices">${choices.map(c=>`<button class="choice" data-choice="${escapeAttr(c)}">${escapeHtml(c)}</button>`).join('')}</div>`;$('reviewFeedback').className='feedback';document.querySelectorAll('#reviewQuestion .choice').forEach(b=>b.onclick=()=>{if(locked)return;locked=true;const correct=b.dataset.choice===q.a;b.classList.add(correct?'correct':'wrong');document.querySelectorAll('#reviewQuestion .choice').forEach(x=>{x.disabled=true;if(x.dataset.choice===q.a)x.classList.add('correct')});if(correct){scores.review+=10;updateScore();feedback('reviewFeedback',true,'Correct! +10 points')}else{missed.push({section:'Review',question:q.q,yours:b.dataset.choice,correct:q.a,explanation:q.e});feedback('reviewFeedback',false,'Not quite. '+q.e)}$('reviewNext').classList.remove('hidden')})}
+function renderReview(){if(reviewIndex>=questions.length){$('reviewQuestion').innerHTML='<h3>Review complete.</h3><p>You may continue to the debugging activity.</p>';$('reviewNext').classList.add('hidden');return}locked=reviewAnswers[reviewIndex]!=null;const q=questions[reviewIndex],choices=shuffle([q.a,...q.w]);$('reviewBar').style.width=(reviewIndex/questions.length*100)+'%';$('reviewQuestion').innerHTML=`<p class="question">${reviewIndex+1}. ${escapeHtml(q.q)}</p><div class="choices">${choices.map(c=>`<button class="choice" data-choice="${escapeAttr(c)}">${escapeHtml(c)}</button>`).join('')}</div>`;$('reviewFeedback').className='feedback';document.querySelectorAll('#reviewQuestion .choice').forEach(b=>b.onclick=()=>{if(locked)return;locked=true;const correct=b.dataset.choice===q.a;b.classList.add(correct?'correct':'wrong');document.querySelectorAll('#reviewQuestion .choice').forEach(x=>{x.disabled=true;if(x.dataset.choice===q.a)x.classList.add('correct')});reviewAnswers[reviewIndex]=correct;scores.review=reviewAnswers.filter(v=>v===true).length*10;updateScore();if(correct){feedback('reviewFeedback',true,'Correct! +10 points')}else{missed.push({section:'Review',question:q.q,yours:b.dataset.choice,correct:q.a,explanation:q.e});feedback('reviewFeedback',false,'Not quite. '+q.e)}$('reviewNext').classList.remove('hidden')});if(locked){document.querySelectorAll('#reviewQuestion .choice').forEach(b=>{b.disabled=true;if(b.dataset.choice===q.a)b.classList.add('correct')});feedback('reviewFeedback',!!reviewAnswers[reviewIndex],reviewAnswers[reviewIndex]?'Already checked: correct.':'Already checked. '+q.e);$('reviewNext').classList.remove('hidden')}else $('reviewNext').classList.add('hidden')}
 $('reviewNext').onclick=()=>{reviewIndex++;renderReview()};
 function escapeHtml(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}function escapeAttr(s){return escapeHtml(s).replace(/"/g,'&quot;')}
 const debugChecks={d1:v=>/class\s*=\s*["']highlight["']/i.test(v),d2:v=>/\.highlight\s*\{[\s\S]*background-color\s*:\s*yellow\s*;/i.test(v),d3:v=>/class\s*=\s*["']feature["']/i.test(v)&&/\.feature\s*\{/i.test(v)&&!/\.featured\s*\{/i.test(v),d4:v=>/color\s*:\s*navy\s*;/i.test(v)&&/font-style\s*:\s*italic\s*;/i.test(v)};
-document.querySelectorAll('.check-debug').forEach(b=>b.onclick=()=>{const id=b.dataset.id,ok=debugChecks[id]($(id).value);if(ok){b.disabled=true;scores.debug+=15;updateScore();feedback(id+'f',true,'Correct! +15 points')}else feedback(id+'f',false,'Check the class syntax, punctuation, and matching names.')});
+document.querySelectorAll('.check-debug').forEach(b=>b.onclick=()=>{const id=b.dataset.id,ok=debugChecks[id]($(id).value);if(ok){debugEarned.add(id);scores.debug=debugEarned.size*15;updateScore();feedback(id+'f',true,'Correct! +15 points')}else feedback(id+'f',false,'Check the class syntax, punctuation, and matching names.')});
 $('checkWrite').onclick=()=>{const v=$('writeCss').value,ok=/\.warning\s*\{[\s\S]*color\s*:\s*red\s*;[\s\S]*font-weight\s*:\s*bold\s*;?[\s\S]*\}/i.test(v)||/\.warning\s*\{[\s\S]*font-weight\s*:\s*bold\s*;[\s\S]*color\s*:\s*red\s*;?[\s\S]*\}/i.test(v);if(ok){award('write',40,40);feedback('writeFeedback',true,'Your .warning rule is complete. +40 points')}else feedback('writeFeedback',false,'Use .warning with color: red; and font-weight: bold; inside braces.')};
 $('resetWrite').onclick=()=>{$('writeCss').value='.warning {\n  \n}';$('writeFeedback').className='feedback'};
 const defaultHtml=$('htmlCode').value,defaultCss=$('cssCode').value;
@@ -81,7 +83,7 @@ function preview(){ $('previewFrame').srcdoc=`<!doctype html><style>${$('cssCode
 </body>`}$('preview').onclick=preview;
 $('checkApply').onclick=()=>{const h=$('htmlCode').value,c=$('cssCode').value;const htmlMatches=(h.match(/<p\s+class\s*=\s*["']special["']/gi)||[]).length===2;const rule=/\.special\s*\{[\s\S]*background-color\s*:\s*(gold|#f2c94c)\s*;?[\s\S]*font-weight\s*:\s*bold\s*;?[\s\S]*\}/i.test(c)||/\.special\s*\{[\s\S]*font-weight\s*:\s*bold\s*;?[\s\S]*background-color\s*:\s*(gold|#f2c94c)\s*;?[\s\S]*\}/i.test(c);if(htmlMatches&&rule){award('apply',50,50);feedback('applyFeedback',true,'The first and third paragraphs share the special class. +50 points');preview();showResults()}else feedback('applyFeedback',false,'Add class="special" to exactly the first and third paragraphs, then create .special with a gold background and bold text.')};
 $('resetApply').onclick=()=>{$('htmlCode').value=defaultHtml;$('cssCode').value=defaultCss;$('applyFeedback').className='feedback';preview()};$('finish').onclick=showResults;
-function percent(){return Math.round(total()/MAX*100)}function label(){return`${total()} points out of ${MAX} - Grade: ${percent()}%`}
+function percent(){return Math.min(100,Math.max(0,Math.round(total()/MAX*100)))}function label(){return`${total()} points out of ${MAX} - Grade: ${percent()}%`}
 function showResults(){$('submitBox').classList.remove('hidden');$('finalResult').textContent=label();$('breakdown').innerHTML=Object.entries(scores).map(([k,v])=>`<div><strong>${k[0].toUpperCase()+k.slice(1)}:</strong> ${v} points</div>`).join('');$('reviewMissed').classList.toggle('hidden',!missed.length);requestAnimationFrame(()=>$('submitBox').scrollIntoView({behavior:'smooth',block:'start'}))}
 $('reviewMissed').onclick=()=>{const box=$('missedList');box.classList.toggle('hidden');$('reviewMissed').textContent=box.classList.contains('hidden')?'Review Incorrect Answers':'Hide Review';box.innerHTML=missed.map(m=>`<div class="miss"><strong>${escapeHtml(m.section)}:</strong> ${escapeHtml(m.question)}<br><strong>Your answer:</strong> ${escapeHtml(m.yours)}<br><strong>Correct answer:</strong> ${escapeHtml(m.correct)}<br>${escapeHtml(m.explanation)}</div>`).join('')};
 $('submitResults').onclick=()=>{const first=$('firstName').value.trim(),last=$('lastName').value.trim(),name=`${last}, ${first}`,period=$('classPeriod').value;if(!first||!last||!period){feedback('submitFeedback',false,'Enter your first name, last name, and choose your class period at the top of the lab.');return}const form=document.createElement('form');form.method='POST';form.action='https://docs.google.com/forms/d/e/1FAIpQLSd4wTjzGT39UHEQ8WdzPMXfDMhVJ8d6BzioxzQXqz5zevRWdw/formResponse';form.target='resultsTarget';form.className='hidden';[['entry.2089413779',name],['entry.890934651',period],['entry.646173439','Lesson 11 | CSS Classes'],['entry.962158861',String(percent())]].forEach(([n,v])=>{const i=document.createElement('input');i.name=n;i.value=v;form.append(i)});document.body.append(form);form.submit();form.remove();$('submitResults').disabled=true;feedback('submitFeedback',true,'Your grade has been submitted.');$('submissionNoticeText').textContent=`${first} ${last}, your grade of ${percent()}% has been submitted.`;$('submissionNotice').classList.remove('hidden')};$('closeNotice').onclick=()=>$('submissionNotice').classList.add('hidden');
@@ -150,6 +152,7 @@ renderReview();preview();
 
   function captureLabProgress(){
     const state={
+      scoringVersion:2,
       activePanel:(document.querySelector(".panel.active")||{}).id||"",
       visibility:{},
       buttons:{},
@@ -166,7 +169,7 @@ renderReview();preview();
     try{if(typeof S!=="undefined")state.S={...S}}catch(e){}
     const numberNames=["reviewIndex","identifyPos","identifyCorrect","debugPos","bugPos","qi","targetIndex","listRound"];
     numberNames.forEach(name=>{try{const value=eval(name);if(typeof value==="number")state.numbers[name]=value}catch(e){}});
-    const arrayNames=["reviewAnswers","targetAnswers","qa","pa","da","identifyOrder","debugOrder","bugOrder"];
+    const arrayNames=["questions","missed","reviewAnswers","targetAnswers","qa","pa","da","identifyOrder","debugOrder","bugOrder"];
     arrayNames.forEach(name=>{try{const value=eval(name);if(Array.isArray(value))state.arrays[name]=[...value]}catch(e){}});
     const objectNames=["debugAnswers","missedMap","miss"];
     objectNames.forEach(name=>{try{const value=eval(name);if(value&&typeof value==="object"&&!Array.isArray(value))state.objects[name]={...value}}catch(e){}});
@@ -184,6 +187,18 @@ renderReview();preview();
     Object.entries(state.arrays||{}).forEach(([name,value])=>{try{const target=eval(name);if(Array.isArray(target)){target.splice(0,target.length,...value)}}catch(e){}});
     Object.entries(state.objects||{}).forEach(([name,value])=>{try{const target=eval(name);if(target&&typeof target==="object"){Object.keys(target).forEach(k=>delete target[k]);Object.assign(target,value)}}catch(e){}});
     Object.entries(state.sets||{}).forEach(([name,value])=>{try{const target=eval(name);if(target instanceof Set){target.clear();value.forEach(v=>target.add(v))}}catch(e){}});
+    // Older drafts saved totals but not earned-question records. Keep bounded credit
+    // during migration, then persist the item records on the next save.
+    if(state.scoringVersion!==2){
+      normalizeScores();
+      const credited=Math.floor(scores.review/10);
+      reviewAnswers.splice(0,reviewAnswers.length,...Array.from({length:Math.max(credited,reviewIndex)},(_,i)=>i<credited));
+      const count=Math.floor(scores.debug/15),ids=Object.keys(debugChecks);
+      const valid=ids.filter(id=>debugChecks[id](document.getElementById(id).value));
+      [...valid,...ids.filter(id=>!valid.includes(id))].slice(0,count).forEach(id=>debugEarned.add(id));
+    }
+    scores.review=reviewAnswers.filter(v=>v===true).length*10;
+    scores.debug=debugEarned.size*15;
     try{if(typeof updateScore==="function")updateScore()}catch(e){}
     try{if(typeof upd==="function")upd()}catch(e){}
     try{if(Object.prototype.hasOwnProperty.call(state.numbers||{},"listRound")&&typeof startList==="function")startList()}catch(e){}
@@ -230,6 +245,7 @@ renderReview();preview();
         }
       }catch(e){}
     }
+    if(!document.getElementById("submitBox").classList.contains("hidden"))showResults();
     return true;
   }
 
@@ -249,6 +265,7 @@ renderReview();preview();
     let frame=document.querySelector('iframe[name="'+payload.target+'"]');
     if(!frame){frame=document.createElement("iframe");frame.name=payload.target;frame.hidden=true;document.body.append(frame)}
     const form=document.createElement("form");form.method="POST";form.action=payload.action;form.target=payload.target;form.hidden=true;
+    if(payload.values["entry.962158861"]!=null)payload.values["entry.962158861"]=String(Math.min(100,Math.max(0,Number(payload.values["entry.962158861"])||0)));
     Object.entries(payload.values).forEach(([name,value])=>{const i=document.createElement("input");i.name=name;i.value=value;form.append(i)});
     document.body.append(form);submittedNow=true;nativeSubmit.call(form);setTimeout(()=>form.remove(),1000);
     if(status())status().textContent="Grade sent again. Keep this page open for five seconds, then check the score report.";
